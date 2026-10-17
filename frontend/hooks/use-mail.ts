@@ -6,9 +6,15 @@ import { getCurrentUser } from '@/lib/services/api-client'
 import type { ListFilters, MailFolder } from '@/lib/types'
 
 export function useEmails(folder: MailFolder, query: string, filters: ListFilters, page = 1) {
-  return useSWR(['emails', folder, query, filters.starredOnly, page], () =>
-    listEmails(folder, query, filters, page),
-    { keepPreviousData: true },
+  return useSWR(
+      ['emails', folder, query, filters.starredOnly, page],
+      () => listEmails(folder, query, filters, page),
+      {
+        keepPreviousData: true,
+        refreshInterval: 5000,
+        revalidateOnFocus: true,
+        revalidateOnReconnect: true,
+      },
   )
 }
 
@@ -17,7 +23,11 @@ export function useEmail(id: string) {
 }
 
 export function useCounts() {
-  return useSWR('counts', getCounts)
+    return useSWR('counts', getCounts, {
+        refreshInterval: 5000,
+        revalidateOnFocus: true,
+        revalidateOnReconnect: true,
+    })
 }
 
 export function useCurrentUser() {

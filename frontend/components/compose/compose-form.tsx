@@ -119,7 +119,7 @@ export function ComposeForm() {
         className="ml-1 flex h-8 items-center gap-1.5 rounded-full border border-primary px-4 text-xs font-medium text-primary transition-colors duration-150 outline-none hover:bg-primary hover:text-primary-foreground focus-visible:ring-3 focus-visible:ring-ring/30 disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-primary"
       >
         {submitting && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
-        {scheduledAt ? 'Schedule' : 'Queue now'}
+        {scheduledAt ? 'Schedule' : 'Send Later'}
       </button>
     </>
   )
