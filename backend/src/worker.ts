@@ -39,7 +39,6 @@ async function main() {
     await smtp.verify()
     logger.info('SMTP connection verified')
   } catch (err) {
-    if (config.isProduction) throw err // fail fast on bad SMTP config in production
     logger.warn({ err: (err as Error).message }, 'SMTP verification failed; sends will be retried when the server is reachable')
   }
 
