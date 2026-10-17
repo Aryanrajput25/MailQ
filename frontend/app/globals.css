@@ -1,0 +1,151 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-logo: var(--font-pixel), var(--font-inter), monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: light;
+  --radius: 0.5rem;
+
+  --background: #ffffff;
+  --foreground: #171a19;
+  --card: #ffffff;
+  --card-foreground: #171a19;
+  --popover: #ffffff;
+  --popover-foreground: #171a19;
+
+  --primary: #16a34a;
+  --primary-hover: #15803d;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f8faf9;
+  --secondary-foreground: #171a19;
+  --muted: #f4f7f5;
+  --muted-foreground: #66706b;
+  --subtle: #f8faf9;
+  --subtle-foreground: #98a19c;
+
+  --accent: #eaf8ef;
+  --accent-foreground: #15803d;
+
+  --destructive: #dc2626;
+  --destructive-soft: #fdecec;
+  --warning: #f59e0b;
+  --warning-soft: #fff8e6;
+  --info: #2563eb;
+
+  --border: #e5e9e7;
+  --border-strong: #d7deda;
+  --input: #e5e9e7;
+  --ring: #16a34a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+}
+
+@layer components {
+  .email-prose {
+    @apply text-[15px] leading-relaxed text-foreground;
+  }
+  .email-prose p {
+    @apply my-3;
+  }
+  .email-prose p:first-child {
+    @apply mt-0;
+  }
+  .email-prose strong,
+  .email-prose b {
+    @apply font-semibold;
+  }
+  .email-prose em,
+  .email-prose i {
+    @apply italic;
+  }
+  .email-prose u {
+    @apply underline underline-offset-2;
+  }
+  .email-prose ul {
+    @apply my-3 list-disc pl-6;
+  }
+  .email-prose ol {
+    @apply my-3 list-decimal pl-6;
+  }
+  .email-prose blockquote {
+    @apply my-3 border-l-2 border-border-strong pl-4 text-muted-foreground;
+  }
+  .email-prose .callout {
+    @apply my-4 rounded-lg border-l-[3px] border-warning bg-warning-soft px-4 py-3 text-sm leading-relaxed;
+  }
+  .email-prose .callout p {
+    @apply my-1;
+  }
+  .email-prose .signoff {
+    @apply italic text-muted-foreground;
+  }
+  .email-prose a {
+    @apply text-primary underline underline-offset-2;
+  }
+  .email-prose font[size='1'] {
+    @apply text-xs;
+  }
+  .email-prose font[size='5'] {
+    @apply text-lg;
+  }
+  .email-prose font[size='6'] {
+    @apply text-2xl;
+  }
+
+  .editor-surface:empty::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none text-subtle-foreground;
+  }
+}

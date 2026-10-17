@@ -1,0 +1,171 @@
+// PostgreSQL is the authoritative source of truth. Redis/BullMQ and Elasticsearch are derived.
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "client" // Rust-free client; requires the pg driver adapter (see src/config/prisma.ts)
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmailStatus {
+  scheduled
+  processing
+  sent
+  failed
+  cancelled
+}
+
+model User {
+  id        String   @id @default(cuid())
+  googleSub String   @unique // Google's stable subject identifier
+  name      String
+  email     String   @unique
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  senders         Sender[]
+  campaigns       Campaign[]
+  emails          Email[]
+  slackConnection SlackConnection?
+}
+
+model Sender {
+  id                  String   @id @default(cuid())
+  ownerId             String
+  email               String
+  displayName         String?
+  // Reference to SMTP credentials (e.g. "ethereal:default" or "env:ETHEREAL"). Never the secret itself.
+  providerConfigRef   String?
+  hourlyLimitOverride Int?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+  emails    Email[]
+
+  @@unique([ownerId, email])
+  @@index([ownerId])
+}
+
+// One scheduling request = one campaign = N Email rows (one per recipient).
+model Campaign {
+  id             String   @id @default(cuid())
+  ownerId        String
+  senderId       String
+  subject        String
+  startAt        DateTime
+  // Campaign pacing (distinct from the global provider MIN_DELAY_MS).
+  delaySeconds   Int      @default(0)
+  // Requested per-campaign hourly cap, validated against server bounds. Null = use sender/global limits.
+  hourlyLimit    Int?
+  idempotencyKey String
+  // sha256 of the normalized request; distinguishes a retry from key reuse with a different payload.
+  requestHash    String?
+  recipientCount Int
+  createdAt      DateTime @default(now())
+
+  owner  User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sender Sender  @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  emails Email[]
+
+  @@unique([ownerId, idempotencyKey])
+  @@index([ownerId, createdAt])
+}
+
+model Email {
+  id               String      @id @default(cuid())
+  ownerId          String
+  senderId         String
+  campaignId       String?
+  recipientEmail   String
+  recipientName    String?
+  subject          String
+  bodyHtml         String
+  bodyText         String
+  status           EmailStatus @default(scheduled)
+  scheduledAt      DateTime
+  sentAt           DateTime?
+  failureReason    String?
+  // Deterministic: derived from the email id, so queue jobs can be re-created idempotently.
+  jobId            String?     @unique
+  idempotencyKey   String
+  attemptCount     Int         @default(0)
+  smtpMessageId    String?
+  previewUrl       String?
+  starred          Boolean     @default(false)
+  // Set when a worker claims the row; used to detect crashed workers.
+  processingStartedAt DateTime?
+  // Set immediately before the SMTP call. Null on a crashed 'processing' row => SMTP never started => safe to retry.
+  smtpAttemptedAt     DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sender   Sender    @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  queueOutbox QueueOutbox?
+
+  @@unique([ownerId, idempotencyKey])
+  @@index([ownerId, status, scheduledAt])
+  @@index([status, processingStartedAt]) // stale-processing recovery
+  @@index([status, scheduledAt]) // reconciliation scans
+  @@index([senderId, status])
+  @@index([campaignId])
+  @@index([ownerId, createdAt])
+}
+
+// Transactional handoff from PostgreSQL (authoritative) to Redis/BullMQ (derived).
+// The unique emailId makes queue recovery idempotent across API/worker restarts.
+model QueueOutbox {
+  id            String   @id @default(cuid())
+  emailId       String   @unique
+  jobId         String   @unique
+  deliveredAt   DateTime?
+  attemptCount  Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@index([deliveredAt, nextAttemptAt])
+}
+
+// Durable PostgreSQL-to-Elasticsearch synchronization. A DB trigger coalesces each email's latest
+// insert/update/delete into this row; Elasticsearch remains a rebuildable search projection.
+model EmailSearchOutbox {
+  emailId       String   @id
+  operation     String
+  attemptCount  Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([nextAttemptAt, createdAt])
+}
+
+model SlackConnection {
+  id                   String    @id @default(cuid())
+  ownerId              String    @unique
+  teamId               String
+  teamName             String
+  // AES-256-GCM ciphertext (base64: iv.tag.data). Key = TOKEN_ENCRYPTION_KEY.
+  encryptedAccessToken String
+  botUserId            String?
+  channelId            String? // notification destination
+  channelName          String?
+  revokedAt            DateTime? // set when Slack reports token_revoked / invalid_auth
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+}

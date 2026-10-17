@@ -1,0 +1,13 @@
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  esbuild: true
+  msgpackr-extract: true
+  prisma: true
+minimumReleaseAgeExclude:
+  - '@zone-eu/mailsplit@5.4.23'
+  - libmime@5.4.9
+  - libqp@2.1.3
+  - mailparser@3.9.40
+  - nodemailer@10.1.2
+  - smtp-server@3.19.23
