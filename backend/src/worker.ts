@@ -55,7 +55,6 @@ async function main() {
   const worker = new Worker(EMAIL_QUEUE_NAME, (job, token) => processor(job as unknown as ProcessableJob, token), {
     connection: workerRedis,
     concurrency: config.WORKER_CONCURRENCY,
-    // A crashed worker's lock expires after lockDuration; BullMQ then redelivers the job (stalledCounter > 0).
     lockDuration: 30_000,
     stalledInterval: 30_000,
     maxStalledCount: 1,
