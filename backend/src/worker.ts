@@ -38,9 +38,25 @@ async function main() {
   try {
     await smtp.verify()
     logger.info('SMTP connection verified')
+
   } catch (err) {
-    logger.warn({ err: (err as Error).message }, 'SMTP verification failed; sends will be retried when the server is reachable')
+    const error = err instanceof Error ? err as Error & {
+      code?: string
+      command?: string
+      responseCode?: number
+    } : undefined
+
+    logger.warn(
+        {
+          message: error?.message ?? String(err),
+          code: error?.code,
+          command: error?.command,
+          responseCode: error?.responseCode,
+        },
+        'SMTP verification failed; sends will be retried when the server is reachable'
+    )
   }
+
 
   const processor = createEmailProcessor({
     prisma,
